@@ -1,3 +1,4 @@
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,4 +8,157 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum UserRole {
+  ADMIN
+  CONTADOR
+  CLIENTE
+}
 
+enum CompanyStatus {
+  ATIVA
+  INATIVA
+}
+
+enum TaxRegime {
+  MEI
+  SIMPLES
+  PRESUMIDO
+  REAL
+}
+
+enum ActivityType {
+  SERVICO
+  COMERCIO
+  MISTA
+}
+
+enum ObligationFrequency {
+  MENSAL
+  ANUAL
+  EVENTUAL
+}
+
+enum DocumentStatus {
+  PENDENTE
+  ENVIADO
+  APROVADO
+  REJEITADO
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      UserRole
+
+  // Cliente dono de empresas
+  companiesOwned Company[] @relation("CompanyOwner")
+
+  // Contador vinculado a empresas (N:N via tabela)
+  accountantLinks CompanyAccountant[] @relation("AccountantLinks")
+
+  // Auditoria de documentos
+  documentsSent      Document[] @relation("DocumentsSent")
+  documentsValidated Document[] @relation("DocumentsValidated")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Company {
+  id           String        @id @default(uuid())
+  razaoSocial  String
+  nomeFantasia String?
+  cnpj         String        @unique
+
+  status       CompanyStatus @default(ATIVA)
+
+  // Contador define/atualiza
+  taxRegime    TaxRegime?
+  activityType ActivityType?
+
+  ownerId String
+  owner   User   @relation("CompanyOwner", fields: [ownerId], references: [id])
+
+  accountantLinks CompanyAccountant[]
+  obligations      Obligation[]
+  documents        Document[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CompanyAccountant {
+  id          String   @id @default(uuid())
+  companyId   String
+  accountantId String
+
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  accountant  User    @relation("AccountantLinks", fields: [accountantId], references: [id], onDelete: Cascade)
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@unique([companyId, accountantId])
+  @@index([accountantId])
+}
+
+model Area {
+  id   String @id @default(uuid())
+  name String @unique
+
+  obligations Obligation[]
+}
+
+model Obligation {
+  id        String             @id @default(uuid())
+  companyId String
+  areaId    String
+
+  title      String
+  dueDay     Int?              // 1..31 (null para EVENTUAL)
+  frequency  ObligationFrequency
+  active     Boolean           @default(true)
+  mandatory  Boolean           @default(true)
+
+  // opcional: útil se você quiser “templates” por regime/atividade no futuro
+  taxRegime    TaxRegime?
+  activityType ActivityType?
+
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  area      Area    @relation(fields: [areaId], references: [id])
+  documents Document[]
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([areaId])
+}
+
+model Document {
+  id          String         @id @default(uuid())
+  companyId   String
+  obligationId String
+
+  referenceMonth String      // ex: "2026-01"
+  fileUrl        String
+  status         DocumentStatus @default(PENDENTE)
+
+  sentById      String
+  sentBy        User          @relation("DocumentsSent", fields: [sentById], references: [id])
+  sentAt        DateTime      @default(now())
+
+  validatedById String?
+  validatedBy   User?         @relation("DocumentsValidated", fields: [validatedById], references: [id])
+  validatedAt   DateTime?
+
+  company    Company    @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  obligation Obligation @relation(fields: [obligationId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([obligationId])
+  @@index([status])
+}

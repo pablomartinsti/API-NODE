@@ -1,21 +1,9 @@
+// routes/user.routes.ts
 import { Router } from 'express';
-import { prisma } from './prisma';
+import { createUser } from '../src/controllers/user.controller';
 
-const routes = Router();
+const router = Router();
 
-routes.post('/users', async (req, res) => {
-  const { name, email } = req.body;
+router.post('/', createUser);
 
-  const user = await prisma.user.create({
-    data: { name, email }
-  });
-
-  res.json(user);
-});
-
-routes.get('/users', async (_, res) => {
-  const users = await prisma.user.findMany();
-  res.json(users);
-});
-
-export default routes;
+export default router;
