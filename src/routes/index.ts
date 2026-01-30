@@ -4,12 +4,16 @@ import userRoutes from './user.routes';
 import companyRoutes from './company.routes';
 import companyAccountantRoutes from './companyAccountant.routes';
 import obligationRoutes from './obligation.routes';
+import documentRoutes from './document.routes';
+import { fakeAuth } from '../middlewares/fakeAuth';
 
 const router = Router();
 
+router.use(fakeAuth);
 router.use('/users', userRoutes);
 router.use('/companies', companyRoutes);
 router.use('/company-accountants', companyAccountantRoutes);
 router.use('/obligations', obligationRoutes);
+router.use('/documents', documentRoutes);
 
 export default router;
