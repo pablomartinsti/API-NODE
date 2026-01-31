@@ -1,9 +1,10 @@
-// routes/user.routes.ts
 import { Router } from 'express';
 import { createUser } from '../controllers/user.controller';
+import { authorize } from '../middlewares/authorize';
 
 const router = Router();
 
-router.post('/users', createUser);
+// admin cria contador e admin
+router.post('/', authorize('ADMIN'), createUser);
 
 export default router;

@@ -1,8 +1,10 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, UserRole } from '@prisma/client';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
+  // ===== ÁREAS FIXAS =====
   const areas = ['Fiscal', 'Contábil', 'Pessoal', 'Legalização'];
 
   for (const name of areas) {
@@ -13,9 +15,26 @@ async function main() {
     });
   }
 
-  console.log('Áreas criadas com sucesso');
+  // ===== ADMIN MASTER =====
+  const adminEmail = process.env.ADMIN_EMAIL!;
+  const adminPassword = process.env.ADMIN_PASSWORD!;
+
+  const hash = await bcrypt.hash(adminPassword, 10);
+
+  await prisma.user.upsert({
+    where: { email: adminEmail },
+    update: {},
+    create: {
+      name: 'Administrador',
+      email: adminEmail,
+      password: hash,
+      role: UserRole.ADMIN
+    }
+  });
+
+  console.log('Áreas e admin criados com sucesso');
 }
 
 main()
-  .catch((e) => console.error(e))
+  .catch(console.error)
   .finally(async () => prisma.$disconnect());

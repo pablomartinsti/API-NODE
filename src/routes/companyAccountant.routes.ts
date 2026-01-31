@@ -1,9 +1,10 @@
 import { Router } from 'express';
 import { linkAccountant, unlinkAccountant } from '../controllers/companyAccountant.controller';
+import { authorize } from '../middlewares/authorize';
 
 const router = Router();
 
-router.post('/', linkAccountant); // ADMIN cria vínculo
-router.delete('/:id', unlinkAccountant); // ADMIN remove vínculo
+router.post('/', authorize('ADMIN'), linkAccountant);
+router.delete('/:id', authorize('ADMIN'), unlinkAccountant);
 
 export default router;
